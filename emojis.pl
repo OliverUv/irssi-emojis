@@ -5,7 +5,7 @@ use Text::CharWidth qw(mbswidth);
 
 use Irssi;
 
-$VERSION = '1.21';
+$VERSION = '1.22';
 
 %IRSSI = (
     authors     => 'Alexandre Gauthier',
@@ -95,6 +95,27 @@ sub knifaize {
     $locked = 0;
 }
 
+# void complete_emoji($complist, $window, $word, $linerestart, $wspace)
+# Tab completion hook for emoji triggers, completes to emoji on match.
+sub complete_emoji {
+    my ($complist, $window, $word, $linestart, $want_space) = @_;
+    my $word_regexp = quotemeta($word);
+    $word_regexp = qr/^$word_regexp/i;  # Compile regexp
+
+    my @matches = ();
+    foreach my $trigger (keys %EMOJIS) {
+        push(@matches, $trigger) if ($trigger =~ m/$word_regexp/);
+    }
+
+    if (scalar(@matches) > 0) {
+        push(@{$complist}, $EMOJIS{$matches[0]});
+    }
+    # TODO if more than one match, do something smart?
+}
+
+# void emojitable()
+# Display a list of all emojis and keys in a crappy table.
+# TODO: Eventually reconcile this with Oliver Uvman's pretty printing
 sub emojitable {
     Irssi::printformat(MSGLEVEL_CLIENTCRAP, 'tblh', "List of emojis");
     while ( my($trigger, $emoji) = each(%EMOJIS) ) {
@@ -173,6 +194,7 @@ Irssi::settings_add_str('lookandfeel', 'knifamode_dbfile',
 
 # hooks
 Irssi::signal_add_first('send command', 'knifaize');
+Irssi::signal_add_last('complete word' => \&complete_emoji);
 
 # commands
 Irssi::command_bind emojis => \&emojitable;
